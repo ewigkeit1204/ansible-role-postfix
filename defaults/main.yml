@@ -1,0 +1,14 @@
+postfix_myhostname: "{{ ansible_fqdn }}"
+postfix_mydomain: "{{ ansible_domain }}"
+postfix_myorigin: "{{ ansible_fqdn }}"
+postfix_home_mailbox: 'Maildir/'
+postfix_inet_interfaces: 'localhost'
+postfix_mydestination: '$myhostname, localhost.$mydomain, localhost'
+postfix_smtp_tls_security_level: 'may'
+postfix_smtpd_tls_security_level:
+postfix_smtpd_tls_cert_file:
+postfix_smtpd_tls_key_file: '$smtpd_tls_cert_file'
+postfix_smtpd_tls_CAfile:
+#postfix_extra_main_configuration:
+#postfix_extra_master_configuration:
+

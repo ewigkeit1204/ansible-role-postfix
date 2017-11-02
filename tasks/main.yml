@@ -1,0 +1,76 @@
+---
+- name: Load variables based on OS type
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution }}.yml"
+    - default.yml
+
+- name: Install postfix
+  package:
+    name: postfix
+    state: present
+
+- name: Configure postfix
+  lineinfile:
+    dest: "{{ postfix_configuration_directory }}/main.cf"
+    regexp: "^{{ item.key }} ="
+    insertafter: "^#{{ item.key }} ="
+    line: "{{ item.key }} = {{ item.value }}"
+  with_dict:
+    myhostname: "{{ postfix_myhostname }}"
+    mydomain: "{{ postfix_mydomain }}"
+    myorigin: "{{ postfix_myorigin }}"
+    inet_interfaces: "{{ postfix_inet_interfaces }}"
+    mydestination: "{{ postfix_mydestination }}"
+    home_mailbox: "{{ postfix_home_mailbox }}"
+    smtp_tls_security_level: "{{ postfix_smtp_tls_security_level }}"
+    smtpd_tls_security_level: "{{ postfix_smtpd_tls_security_level }}"
+    smtpd_tls_cert_file: "{{ postfix_smtpd_tls_cert_file }}"
+    smtpd_tls_key_file: "{{ postfix_smtpd_tls_key_file }}"
+    smtpd_tls_CAfile: "{{ postfix_smtpd_tls_CAfile }}"
+  notify: restart postfix
+
+- name: Stop sendmail (FreeBSD)
+  service:
+    name: sendmail
+    enabled: no
+    state: stopped
+  when: ansible_distribution == 'FreeBSD'
+
+- name: Disable sendmail specific tasks (FreeBSD)
+  lineinfile:
+    path: /etc/periodic.conf
+    create: yes
+    owner: root
+    group: wheel
+    mode: 0644
+    regexp: "^{{ item.key }}="
+    line: "{{ item.key }}=\"{{item.value}}\""
+    state: present
+  with_dict:
+    daily_clean_hoststat_enable: 'NO'
+    daily_status_mail_rejects_enable: 'NO'
+    daily_status_include_submit_mailq: 'NO'
+    daily_submit_queuerun: 'NO'
+  when: ansible_distribution == 'FreeBSD'
+
+- name: Install python-firewall package
+  dnf:
+    name: python-firewall
+    state: present
+  when: ansible_distribution == 'Fedora'
+
+- name: Accept incoming smtp packets
+  firewalld:
+    service: smtp
+    immediate: True
+    permanent: True
+    state: enabled
+  when: ansible_distribution == 'Fedora'
+
+- name: Start postfix
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+
